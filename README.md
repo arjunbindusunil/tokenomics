@@ -1,80 +1,70 @@
-# tokenomics — measure-driven token-efficiency for agentic LLM pipelines
+# tokenomics — spend your tokens well 🪙
 
-> We measured every popular token-saving trick on a real production LLM agent. The #1 reflex — reach for a
-> bigger model — was the **least** useful lever. Here's what actually works, packaged as a self-improving skill.
+> Two open Claude skills for getting **better results for less**. Start simple:
+> **[nail-it](nail-it/)** turns vague prompts into sharp ones. Go deep:
+> **[tokenomics](tokenomics/)** measures your whole pipeline and ships a proven, cheaper
+> config. Every rule is backed by a **real, measured study** — not vibes.
 
-_Domain-anonymized (generic "content generation"), MIT-licensed. Every number below is a real, measured
-receipt computed at published Anthropic API rates._
+_MIT · domain-anonymized · every number is a real receipt at published Anthropic API rates._
 
-## What it is
-A **measurement-driven optimization harness + playbook** for any agentic LLM pipeline (a Claude Code
-agent that authors long-form content, proposals, plans, etc.). It opens the black box, applies the
-cost levers in the order that actually pays off, and **judge-gates every change** so you never trade
-quality for cost. It ships a *recommended config with proof*, not vibes — and a self-improving loop that
-keeps tuning.
+## The 30-second version
+Most people optimize the wrong thing. In a measured study on a real production LLM agent,
+the #1 reflex — **reach for a bigger model** — was the **least** useful lever. What actually
+worked was dull and free: **say exactly what you want**, and **stop re-reading context you
+don't need.** These two skills package that so you don't have to run the study yourself.
 
-## Why it's different from compression skills
-Point tools compress words or memory. This is the **diagnostic + playbook** that decides *which* lever,
-*in what order*, and *proves* the quality held. The findings (below) are measured with a quality gate on
-a real workload — several contradict popular advice.
+## Pick your tier
 
-## The measured lessons (the skill's rules — see RULES.md)
-1. **Fix context architecture before the model.** Not re-reading big always-on docs every turn cut
-   cache-read ~5× *before any model change* — a ~32–63× smaller per-call payload, read once.
-2. **Quality is a prompt-spec knob, not a model knob.** Both a cheap and an expensive model rose to 4/5
-   when the *spec* was tightened (from 3/5 and 2/5) — then the cheap model matched the dear one.
-3. **The bigger-model reflex is the least useful lever.** It was the *last* thing that helped.
-4. **Lexical "caveman" compression is a trap once context is lean** — measured: ~0 savings + a quality
-   regression. The win is structural (read-once), not lexical.
-5. **A structured plan→self-check scaffold buys high-effort *quality* from a low effort tier — but not
-   cost** (the extra orchestration turns offset the saving).
-6. **Turn count is a bad cost proxy** — a cheaper model used more turns but cost 5× less.
-7. **The eval must match the audience** — a technical judge fails non-technical content (false negative);
-   grade each artifact against *its* audience.
-8. **Validate your harness first** — instrument bugs (truncated judge, shared scratch paths, a stale
-   read) masquerade as model behavior and produce confidently-wrong conclusions.
-9. **Tier within a task** — cheap model by default, escalate to a stronger one only where it measurably
-   clusters/fails (e.g. dense inputs), with a cheap detector — not blanket.
-10. **Encode acceptance as a step the model executes** (a length/diversity gate it self-checks), not a
-    hope in the preamble.
+| Skill | For | What it does | Setup |
+|---|---|---|---|
+| 🎯 **[nail-it](nail-it/)** | everyone | Rewrites a vague prompt into a specific one — audience, length, checkable success criteria, right-sized model — asking a question only when it must. | **one file, 30s** |
+| 🔬 **[tokenomics](tokenomics/)** | pipeline builders | A measurement harness: open the black box, apply cost levers in the proven order, judge-gate every change, ship a config **with receipts**. | Python + your pipeline |
 
-> **Meta-order that matters:** architecture → spec/eval → effort → model-tier → (maybe) lexical. Most
-> teams start at "bigger model"; in our data that was last and least.
+Most people want **nail-it**. Reach for **tokenomics** when you run a real pipeline and want
+to *prove* a cheaper config holds quality.
 
-## The engine
-- **Isolated rig** — run the real pipeline against a throwaway stack, no production side effects.
-- **Observability** — per-call tokens, cache-read/creation, turns, per-model breakdown, cost.
-- **Cheap judge gate** — a small-model rubric (1–5) per artifact, *audience-matched*, so downgrades are
-  safe.
-- **One-variable A/B** — change one lever, measure cost + latency *and* quality vs baseline.
-- **Self-improving loop** — keeps proposing/locking configs until quality ≥ bar at min cost.
-
-## Quick start
+## Install (30 seconds)
 ```bash
-pip install anthropic
-export ANTHROPIC_API_KEY=...
-python -m engine.validate        # prove the harness first (offline; --live adds one judge call)
+cp -r nail-it     ~/.claude/skills/     # the simple one — start here
+cp -r tokenomics  ~/.claude/skills/     # the advanced harness
 ```
-Then open `skill.md` and walk the phased playbook against your own pipeline.
+(Per-project: use `.claude/skills/` instead.) Then just talk to Claude — e.g.
+`/nail-it write me a landing page`, or let nail-it tighten loose prompts automatically.
 
-## Roadmap — the same method, other workloads
-The method is proven on content generation (this repo). The same engine — rig, observability, cheap judge,
-one-variable A/B — transfers to the other big agentic workloads, in rough order of how cleanly each can be
-measured:
-1. **Content generation** — the core method + rig + judge + one-variable A/B + loop *(done)*.
-2. **RAG / Q&A** — retrieval discipline (top-k, rerank-vs-dump, context compression), groundedness eval.
-3. **Agentic tool-use** — tool-surface trimming, history compression, turn-bounding.
-4. **Coding agents** — cleanest objective eval (tests pass or they don't), so it's last and easiest to trust.
+## Before → after (nail-it)
+**Before:** "write me something about our new feature for the blog"
 
-## Files in this repo
-- `skill.md` — the skill entrypoint: frontmatter/trigger + the phased playbook to run.
-- `RULES.md` — the 10 lessons, operationalized, applied in the meta-order.
-- `engine/` — the measurement harness (all templates, adapt to your pipeline):
-  - `rates.py` — the Anthropic rate card + cost math (reproduces the $5.22 anchor).
-  - `observe.py` — Phase 0 per-call telemetry to JSONL + the bucketed-bill summary.
-  - `judge.py` — the cheap, audience-matched 1–5 quality judge (defensive parse).
-  - `ab.py` — one-variable A/B: baseline vs single-lever variant on cost + quality.
-  - `validate.py` — **run first** — proves the harness before you trust a number.
-  - `engine/README.md` — how the four wire together + the loop.
-- `examples/README.md` — the receipts: every measured before/after, at real rates.
-- `LICENSE` — MIT.
+**After:** "Write a 600-word blog post announcing **<feature>** for technical users new to
+**<domain>**. Lead with the problem it solves, show one before → after, end with one call to
+action. Name the feature in the first line; include one real usage example. Concrete, no
+fluff."
+
+Same idea — the first draft is the one you wanted. Fewer correcting turns, fewer tokens.
+
+## The receipts (why trust the rules)
+From a measured study on a real long-form-content agent (full numbers in
+[`tokenomics/examples/`](tokenomics/examples/README.md)):
+
+- **Context architecture** cut re-read tokens **~5×** *before any model change* — a
+  32–63× smaller per-call instruction payload.
+- **Tightening the spec** lifted a **cheap and an expensive** model to the *same* score —
+  the model was never the bottleneck.
+- **The flagship model lost.** It was the baseline ($5.22/run, 4/5); a mid-tier model at
+  high effort beat it — **~$1.01 and 5/5**. Across everything measured, the flagship wasn't
+  needed anywhere.
+- **"Caveman" lexical compression** saved ~nothing once context was lean — and cost a
+  quality point. The win is structural, not lexical.
+
+> **The order that pays off:** context architecture → spec & eval → effort → model tier →
+> (maybe) lexical. Most teams start at "bigger model." In the data that was last and least.
+
+## How it works
+- **nail-it** is a single `SKILL.md` — no code, no deps. It rewrites loose requests using
+  the measured rules before they run.
+- **tokenomics** is a small Python harness (`rates · observe · judge · ab · validate`) plus
+  the 10 rules and the receipts. From its folder, run `python -m engine.validate` to prove
+  the harness, then follow its [`SKILL.md`](tokenomics/SKILL.md).
+
+## License
+MIT. The findings are real, measured receipts computed at published Anthropic API rates.
+If it helps you, a ⭐ helps others find it.
